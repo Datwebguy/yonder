@@ -50,11 +50,17 @@ export function WalletButton({ required = false }: { required?: boolean }) {
 
   const chooseWallet = async (connector: (typeof connectors)[number]) => {
     setConnectError("");
+    // Let the official WalletConnect/Reown modal own the viewport. Keeping
+    // Yonder's chooser mounted underneath it can make a close event look like
+    // a reset before the wallet has had a chance to approve the session.
+    setChooserOpen(false);
     try {
       await connectAsync({ connector });
-      setChooserOpen(false);
     } catch (reason) {
-      setConnectError(reason instanceof Error ? reason.message : "Wallet connection was cancelled.");
+      const message = reason instanceof Error ? reason.message : "Wallet connection was cancelled.";
+      setConnectError(/connection request reset/i.test(message)
+        ? "WalletConnect was closed before approval. Choose it again and approve in your wallet."
+        : message);
     }
   };
 
@@ -70,6 +76,7 @@ export function WalletButton({ required = false }: { required?: boolean }) {
           <p className="wallet-chooser-note">Yonder never connects a wallet before you choose one.</p>
         </section>
       </div> : null}
+      {connectError && !chooserOpen ? <p className="inline-error wallet-connect-error" role="alert">{connectError}</p> : null}
     </>;
   }
 

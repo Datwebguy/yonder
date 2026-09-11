@@ -136,6 +136,7 @@ h1, h2, h3 { text-wrap: balance; }
 .wallet-choice small { margin-top: 3px; color: var(--subtle); font-size: 12px; line-height: 1.35; }
 .wallet-choice > b { color: var(--brand); font-size: 23px; font-weight: 400; text-align: right; }
 .wallet-chooser-note { margin: 18px 0 0; color: var(--subtle); font-size: 11px; line-height: 1.4; }
+.wallet-connect-error { margin: 8px 0 0; max-width: 240px; text-align: right; }
 
 .hero { display: grid; grid-template-columns: 1fr; gap: 36px; align-items: center; min-height: auto; margin-inline: calc((100% - 100vw) / 2); padding: 58px max(16px, calc((100vw - 1160px) / 2)) 64px; overflow: hidden; background-color: #1f00ff; background-image: radial-gradient(circle at 82% 18%, rgba(117,93,255,.42), transparent 28%), radial-gradient(circle at 18% 100%, rgba(80,58,224,.34), transparent 32%), linear-gradient(rgba(255,255,255,.055) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.055) 1px, transparent 1px); background-size: auto, auto, 32px 32px, 32px 32px; color: #fff; position: relative; isolation: isolate; }
 .hero::before { content: ""; position: absolute; width: 620px; height: 620px; right: -230px; top: -310px; border: 1px solid rgba(255,255,255,.12); border-radius: 50%; box-shadow: 0 0 0 44px rgba(255,255,255,.035), 0 0 0 94px rgba(255,255,255,.025); animation: softShapeDrift 12s ease-in-out infinite; z-index: -1; }

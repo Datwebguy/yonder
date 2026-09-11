@@ -9,7 +9,16 @@ const connectors = [injected({ shimDisconnect: true })];
 // that construction client-only so Next's server/static render never touches
 // indexedDB, while the browser still gets the QR/deep-link connector.
 if (typeof window !== "undefined" && walletConnectProjectId) {
-  connectors.push(walletConnect({ projectId: walletConnectProjectId, showQrModal: true }) as (typeof connectors)[number]);
+  connectors.push(walletConnect({
+    projectId: walletConnectProjectId,
+    showQrModal: true,
+    metadata: {
+      name: "Yonder",
+      description: "The next window. A public room for DreamDEX Event Contracts.",
+      url: "https://yonder.xyz",
+      icons: ["https://yonder.xyz/yonder-mark.svg"],
+    },
+  }) as (typeof connectors)[number]);
 }
 
 export const wagmiConfig = createConfig({
