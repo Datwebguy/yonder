@@ -37,13 +37,17 @@ export function WalletButton({ required = false }: { required?: boolean }) {
 
   const injectedConnector = connectors.find((connector) => connector.id === "injected");
   const walletConnectConnector = connectors.find((connector) => connector.id === "walletConnect");
-  const hasInjectedProvider = typeof window !== "undefined" && Boolean((window as Window & { ethereum?: unknown }).ethereum);
   const injectedConnectors = connectors.filter((connector) => connector.type === "injected");
   // Wagmi adds one connector per EIP-6963 provider after discovery. Do not
   // fall back to the generic injected connector when named providers exist:
   // that connector delegates to window.ethereum, which can silently resolve
   // to Phantom when several extensions are installed.
   const discoveredBrowserWallets = injectedConnectors.filter((connector) => connector.id !== "injected");
+  const hasInjectedProvider = typeof window !== "undefined" && Boolean(
+    (window as Window & { ethereum?: unknown; phantom?: { ethereum?: unknown } }).ethereum
+      ?? (window as Window & { phantom?: { ethereum?: unknown } }).phantom?.ethereum
+      ?? discoveredBrowserWallets.length,
+  );
   const browserWallets = discoveredBrowserWallets.length
     ? discoveredBrowserWallets
     : injectedConnector
