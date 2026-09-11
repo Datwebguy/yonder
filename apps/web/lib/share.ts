@@ -74,6 +74,93 @@ function drawOutcomeMark(context: CanvasRenderingContext2D, x: number, y: number
   context.restore();
 }
 
+function drawCharacter(context: CanvasRenderingContext2D, x: number, y: number, scale: number, mood: "won" | "lost" | "live", accent: string) {
+  context.save();
+  context.translate(x, y);
+  context.scale(scale, scale);
+  context.lineCap = "round";
+  context.lineJoin = "round";
+
+  context.fillStyle = "rgba(0,0,0,.2)";
+  context.beginPath();
+  context.ellipse(0, 166, 92, 15, 0, 0, Math.PI * 2);
+  context.fill();
+
+  context.strokeStyle = "#17172a";
+  context.lineWidth = 10;
+  context.beginPath();
+  if (mood === "won") {
+    context.moveTo(-62, 86); context.lineTo(-112, 34);
+    context.moveTo(62, 86); context.lineTo(112, 30);
+  } else if (mood === "lost") {
+    context.moveTo(-62, 88); context.lineTo(-105, 124);
+    context.moveTo(62, 88); context.lineTo(105, 124);
+  } else {
+    context.moveTo(-62, 88); context.lineTo(-108, 84);
+    context.moveTo(62, 88); context.lineTo(108, 84);
+  }
+  context.stroke();
+
+  context.fillStyle = "#f8f7ff";
+  roundedRect(context, -70, 28, 140, 116, 30);
+  context.fill();
+  context.strokeStyle = "#17172a";
+  context.lineWidth = 6;
+  context.stroke();
+
+  context.fillStyle = "#17172a";
+  roundedRect(context, -82, -78, 164, 122, 38);
+  context.fill();
+  context.fillStyle = accent;
+  roundedRect(context, -56, -42, 112, 56, 24);
+  context.fill();
+  context.fillStyle = "#17172a";
+  context.beginPath();
+  context.arc(-24, -14, 9, 0, Math.PI * 2);
+  context.arc(24, -14, 9, 0, Math.PI * 2);
+  context.fill();
+
+  context.strokeStyle = "#17172a";
+  context.lineWidth = 6;
+  context.beginPath();
+  if (mood === "lost") {
+    context.arc(0, 34, 18, Math.PI + .25, Math.PI * 2 - .25);
+  } else {
+    context.arc(0, 22, 18, .2, Math.PI - .2);
+  }
+  context.stroke();
+
+  context.fillStyle = accent;
+  context.font = "900 44px Arial";
+  context.textAlign = "center";
+  context.fillText("Y", 0, 112);
+
+  context.strokeStyle = "#17172a";
+  context.lineWidth = 8;
+  context.beginPath();
+  context.moveTo(-40, 145); context.lineTo(-47, 169);
+  context.moveTo(40, 145); context.lineTo(47, 169);
+  context.stroke();
+
+  if (mood === "won") {
+    context.fillStyle = "#ffd166";
+    context.beginPath();
+    context.moveTo(-32, -94); context.lineTo(-20, -125); context.lineTo(0, -108); context.lineTo(20, -132); context.lineTo(32, -94); context.closePath();
+    context.fill();
+    context.strokeStyle = "#17172a";
+    context.lineWidth = 5;
+    context.stroke();
+  } else if (mood === "lost") {
+    context.strokeStyle = "#ffbf69";
+    context.lineWidth = 5;
+    context.beginPath();
+    context.moveTo(-116, -126); context.lineTo(-98, -108);
+    context.moveTo(-98, -126); context.lineTo(-116, -108);
+    context.stroke();
+  }
+  context.restore();
+}
+
 function fitText(context: CanvasRenderingContext2D, value: string, maxWidth: number) {
   if (context.measureText(value).width <= maxWidth) return value;
   let output = value;
@@ -168,23 +255,26 @@ export async function makeShareCard(input: ShareInput) {
   context.font = "600 16px Arial";
   context.fillText("DREAMDEX EVENT CONTRACT  ·  SOMNIA SHANNON", 72, 566);
 
-  context.save();
-  roundedRect(context, 780, 204, 330, 280, 28);
-  context.fillStyle = "rgba(255,255,255,.1)";
-  context.fill();
-  context.strokeStyle = "rgba(255,255,255,.24)";
-  context.lineWidth = 2;
-  context.stroke();
   context.fillStyle = "rgba(255,255,255,.72)";
   context.font = "700 15px Arial";
-  context.fillText(won ? "RESULT" : lost ? "FINAL CALL" : "POSITION", 816, 250);
-  drawOutcomeMark(context, 945, 348, won ? "won" : lost ? "lost" : "live", accent);
+  context.fillText(won ? "RESULT" : lost ? "FINAL CALL" : "POSITION", 816, 212);
+  context.fillStyle = accent;
+  context.font = "800 18px Arial";
+  context.fillText(won ? "WIN" : lost ? "LOSS" : "LIVE", 816, 242);
+  context.strokeStyle = accent;
+  context.globalAlpha = .35;
+  context.lineWidth = 2;
+  context.beginPath();
+  context.arc(948, 348, 124, 0, Math.PI * 2);
+  context.stroke();
+  context.globalAlpha = 1;
+  drawCharacter(context, 948, 330, 1.02, won ? "won" : lost ? "lost" : "live", accent);
+  drawOutcomeMark(context, 1080, 216, won ? "won" : lost ? "lost" : "live", accent);
   context.fillStyle = "#ffffff";
-  context.font = "800 48px Arial";
+  context.font = "800 22px Arial";
   context.textAlign = "center";
-  context.fillText(won ? "WON" : lost ? "LOST" : input.side.toUpperCase(), 945, 432);
+  context.fillText(won ? "WON" : lost ? "LOST" : input.side.toUpperCase(), 948, 536);
   context.textAlign = "left";
-  context.restore();
 
   context.fillStyle = warmAccent;
   context.font = "800 44px Arial";
@@ -194,13 +284,23 @@ export async function makeShareCard(input: ShareInput) {
 
 export async function shareFill(input: ShareInput) {
   const blob = await makeShareCard(input);
-  const url = `${window.location.origin}/m/${input.market.marketId}`;
+  const url = "https://useyonder.vercel.app/";
   const priceLine = input.price > 0 ? `I took ${input.side} at ${Math.round(input.price * 100)}¢.` : `I took the ${input.side} side.`;
   const text = input.outcome === "won"
-    ? `I just won ${input.side} on ${input.market.asset} ${input.market.intervalLabel} on Yonder.\n\nFeels good trying out public Event Contracts on @Somnia_Network with @dreamDEXSomnia.\n\nYou can go check it out: ${url}`
+    ? `I just won ${input.side} on ${input.market.asset} ${input.market.intervalLabel} on Yonder.\n\nFeels good trying out public Event Contracts on @Somnia_Network with @dreamDEXSomnia.\n\nYou can go check it out.`
     : input.outcome === "lost"
-      ? `${priceLine} It did not land this time, but the public record is on Yonder.\n\nTry the next window on @Somnia_Network with @dreamDEXSomnia.\n\nYou can go check it out: ${url}`
-      : `${priceLine} Trying the next window on Yonder.\n\nPublic Event Contracts on @Somnia_Network with @dreamDEXSomnia.\n\nYou can go check it out: ${url}`;
+      ? `${priceLine} It did not land this time, but the public record is on Yonder.\n\nTry the next window on @Somnia_Network with @dreamDEXSomnia.\n\nYou can go check it out.`
+      : `${priceLine} Trying the next window on Yonder.\n\nPublic Event Contracts on @Somnia_Network with @dreamDEXSomnia.\n\nYou can go check it out.`;
+  const file = new File([blob], "yonder-card.png", { type: "image/png" });
+  if (navigator.share && navigator.canShare?.({ files: [file] })) {
+    try {
+      await navigator.share({ title: "Yonder", text, url, files: [file] });
+      return;
+    } catch (reason) {
+      if (reason instanceof DOMException && reason.name === "AbortError") return;
+    }
+  }
+
   const downloadUrl = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
   anchor.href = downloadUrl;
