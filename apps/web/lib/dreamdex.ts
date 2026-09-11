@@ -58,6 +58,12 @@ export async function setExchangeSigner(walletClient?: WalletClient) {
   return exchange;
 }
 
+export async function faucetTestUsdc(walletClient: WalletClient) {
+  const exchange = await setExchangeSigner(walletClient);
+  const trader = exchange.client.createTrader({ walletClient });
+  return trader.faucet();
+}
+
 function numberValue(value: unknown, fallback = 0) {
   const number = Number(value);
   return Number.isFinite(number) ? number : fallback;

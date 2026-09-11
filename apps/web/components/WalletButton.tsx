@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 import { useAccount, useBalance, useConnect, useDisconnect, useSwitchChain, useWalletClient } from "wagmi";
 import { formatUnits } from "viem";
-import { TEST_USDC, TEST_USDC_DECIMALS, SHANNON_CHAIN_ID } from "@/lib/chain";
-import { setExchangeSigner } from "@/lib/dreamdex";
+import { explorerTxUrl, TEST_USDC, TEST_USDC_DECIMALS, SHANNON_CHAIN_ID } from "@/lib/chain";
+import { faucetTestUsdc, setExchangeSigner } from "@/lib/dreamdex";
 import { shortAddress } from "@/lib/sizing";
 
 export function WalletButton({ required = false }: { required?: boolean }) {
@@ -14,10 +14,13 @@ export function WalletButton({ required = false }: { required?: boolean }) {
   const { switchChain, isPending: switching } = useSwitchChain();
   const { data: walletClient } = useWalletClient();
   const { data: stt } = useBalance({ address, chainId: SHANNON_CHAIN_ID, query: { enabled: Boolean(address) } });
-  const { data: usdc } = useBalance({ address, chainId: SHANNON_CHAIN_ID, token: TEST_USDC, query: { enabled: Boolean(address) } });
+  const { data: usdc, refetch: refetchUsdc } = useBalance({ address, chainId: SHANNON_CHAIN_ID, token: TEST_USDC, query: { enabled: Boolean(address) } });
   const [chooserOpen, setChooserOpen] = useState(false);
   const [connectError, setConnectError] = useState("");
   const [switchError, setSwitchError] = useState("");
+  const [faucetPending, setFaucetPending] = useState(false);
+  const [faucetError, setFaucetError] = useState("");
+  const [faucetHash, setFaucetHash] = useState("");
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
@@ -88,6 +91,26 @@ export function WalletButton({ required = false }: { required?: boolean }) {
     }
   };
 
+  const getTestUsdc = async () => {
+    if (!walletClient) {
+      setFaucetError("Wallet approval is not ready yet.");
+      return;
+    }
+    setFaucetError("");
+    setFaucetHash("");
+    setFaucetPending(true);
+    try {
+      const result = await faucetTestUsdc(walletClient);
+      const hash = String(result?.hash ?? result?.receipt?.transactionHash ?? "");
+      setFaucetHash(hash);
+      await refetchUsdc();
+    } catch (reason) {
+      setFaucetError(reason instanceof Error ? reason.message : "Could not mint test tUSDC.");
+    } finally {
+      setFaucetPending(false);
+    }
+  };
+
   if (!isConnected || !address) {
     return <>
       <button className="button button-secondary" onClick={connectWallet} disabled={isPending}>{isPending ? "Connecting" : required ? "Connect wallet" : "Connect"}</button>
@@ -122,6 +145,9 @@ export function WalletButton({ required = false }: { required?: boolean }) {
       <div className="wallet-popover">
         <div><span>STT</span><strong>{stt ? Number(formatUnits(stt.value, stt.decimals)).toFixed(3) : "n/a"}</strong></div>
         <div><span>tUSDC</span><strong>{usdc ? Number(formatUnits(usdc.value, TEST_USDC_DECIMALS)).toFixed(2) : "n/a"}</strong></div>
+        <button className="wallet-faucet-button" type="button" onClick={() => void getTestUsdc()} disabled={faucetPending}>{faucetPending ? "Minting tUSDC…" : "Get 10,000 tUSDC"}</button>
+        {faucetHash ? <a className="wallet-faucet-link" href={explorerTxUrl(faucetHash)} target="_blank" rel="noreferrer">View faucet transaction ↗</a> : null}
+        {faucetError ? <p className="inline-error" role="alert">{faucetError}</p> : null}
         <button className="text-button" onClick={() => disconnect()}>Disconnect</button>
       </div>
     </details>

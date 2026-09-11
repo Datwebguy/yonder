@@ -116,9 +116,12 @@ h1, h2, h3 { text-wrap: balance; }
 .wallet-details { position: relative; }
 .wallet-details summary { list-style: none; }
 .wallet-details summary::-webkit-details-marker { display: none; }
-.wallet-popover { position: absolute; right: 0; top: 52px; width: 190px; padding: 14px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow-hover); z-index: 30; }
+.wallet-popover { position: absolute; right: 0; top: 52px; width: 240px; padding: 14px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow-hover); z-index: 30; }
 .wallet-popover div { display: flex; justify-content: space-between; padding: 5px 0; color: var(--subtle); font-size: 13px; }
 .wallet-popover strong { color: var(--text); font-variant-numeric: tabular-nums; }
+.wallet-faucet-button { width: 100%; margin: 12px 0 6px; padding: 9px 10px; border: 1px solid var(--brand); border-radius: 8px; background: var(--brand); color: #fff; font: inherit; font-size: 12px; font-weight: 750; cursor: pointer; }
+.wallet-faucet-button:disabled { opacity: .65; cursor: wait; }
+.wallet-faucet-link { display: block; margin: 4px 0 10px; color: var(--brand); font-size: 11px; text-decoration: none; }
 .wallet-chooser-backdrop { position: fixed; inset: 0; z-index: 80; display: grid; place-items: center; padding: 16px; background: rgba(5, 10, 20, .56); animation: chooserFade 180ms ease-out both; }
 .wallet-chooser { width: min(100%, 440px); padding: 24px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); color: var(--text); box-shadow: 0 28px 90px rgba(5, 10, 20, .24); animation: chooserRise 220ms cubic-bezier(.16, 1, .3, 1) both; }
 .wallet-chooser-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
