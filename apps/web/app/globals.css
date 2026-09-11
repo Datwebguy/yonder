@@ -130,6 +130,7 @@ h1, h2, h3 { text-wrap: balance; }
 .wallet-choice { display: grid; grid-template-columns: 42px minmax(0, 1fr) 20px; align-items: center; gap: 12px; width: 100%; min-height: 68px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--background); color: var(--text); text-align: left; transition: transform 180ms ease, border-color 180ms ease, background 180ms ease; }
 .wallet-choice:hover { transform: translateY(-2px); border-color: var(--brand); background: var(--brand-soft); }
 .wallet-choice-icon { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 10px; background: var(--brand); color: #fff; font-size: 17px; font-weight: 850; }
+.wallet-choice-icon-image { display: block; width: 26px; height: 26px; border-radius: 7px; background-position: center; background-repeat: no-repeat; background-size: contain; }
 .wallet-choice-icon-wallet-connect { background: var(--ink); }
 .wallet-choice strong, .wallet-choice small { display: block; }
 .wallet-choice strong { font-size: 15px; }

@@ -38,11 +38,30 @@ export function WalletButton({ required = false }: { required?: boolean }) {
   const injectedConnector = connectors.find((connector) => connector.id === "injected");
   const walletConnectConnector = connectors.find((connector) => connector.id === "walletConnect");
   const hasInjectedProvider = typeof window !== "undefined" && Boolean((window as Window & { ethereum?: unknown }).ethereum);
+  const injectedConnectors = connectors.filter((connector) => connector.type === "injected");
+  // Wagmi adds one connector per EIP-6963 provider after discovery. Do not
+  // fall back to the generic injected connector when named providers exist:
+  // that connector delegates to window.ethereum, which can silently resolve
+  // to Phantom when several extensions are installed.
+  const discoveredBrowserWallets = injectedConnectors.filter((connector) => connector.id !== "injected");
+  const browserWallets = discoveredBrowserWallets.length
+    ? discoveredBrowserWallets
+    : injectedConnector
+      ? [injectedConnector]
+      : [];
   const walletChoices = [
-    !isMobile && hasInjectedProvider && injectedConnector ? { key: "browser", label: "Browser wallet", detail: "Use the extension in this browser.", connector: injectedConnector } : null,
+    ...(!isMobile && hasInjectedProvider
+      ? browserWallets.map((connector) => ({
+        key: `browser-${connector.id}`,
+        label: connector.name === "Injected" ? "Browser wallet" : connector.name,
+        detail: connector.name === "Injected" ? "Use the extension in this browser." : `Use ${connector.name} in this browser.`,
+        connector,
+        icon: connector.icon,
+      }))
+      : []),
     isMobile && hasInjectedProvider && injectedConnector ? { key: "this-wallet", label: "This wallet", detail: "Use the wallet app around this browser.", connector: injectedConnector } : null,
-    walletConnectConnector ? { key: "wallet-connect", label: "WalletConnect", detail: isMobile ? "Choose a wallet and continue in its app." : "Scan the QR code with your phone.", connector: walletConnectConnector } : null,
-  ].filter(Boolean) as { key: string; label: string; detail: string; connector: (typeof connectors)[number] }[];
+    walletConnectConnector ? { key: "wallet-connect", label: "WalletConnect", detail: isMobile ? "Choose a wallet and continue in its app." : "Scan the QR code with your phone.", connector: walletConnectConnector, icon: undefined } : null,
+  ].filter(Boolean) as { key: string; label: string; detail: string; connector: (typeof connectors)[number]; icon?: string }[];
 
   const connectWallet = () => {
     setConnectError("");
@@ -71,7 +90,7 @@ export function WalletButton({ required = false }: { required?: boolean }) {
       {chooserOpen ? <div className="wallet-chooser-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setChooserOpen(false); }}>
         <section className="wallet-chooser" role="dialog" aria-modal="true" aria-labelledby="wallet-chooser-title">
           <div className="wallet-chooser-heading"><div><p className="eyebrow">Connect a wallet</p><h2 id="wallet-chooser-title">Choose how to enter.</h2><p>Select a wallet first. It will ask you to approve the connection.</p></div><button className="wallet-chooser-close" type="button" aria-label="Close wallet chooser" onClick={() => setChooserOpen(false)}>×</button></div>
-          <div className="wallet-choices">{walletChoices.map((choice) => <button className="wallet-choice" type="button" key={choice.key} onClick={() => void chooseWallet(choice.connector)}><span className={`wallet-choice-icon wallet-choice-icon-${choice.key}`} aria-hidden="true">{choice.key === "wallet-connect" ? "W" : "↗"}</span><span><strong>{choice.label}</strong><small>{choice.detail}</small></span><b aria-hidden="true">›</b></button>)}</div>
+          <div className="wallet-choices">{walletChoices.map((choice) => <button className="wallet-choice" type="button" key={choice.key} onClick={() => void chooseWallet(choice.connector)}><span className={`wallet-choice-icon wallet-choice-icon-${choice.key}`} aria-hidden="true">{"icon" in choice && choice.icon ? <span className="wallet-choice-icon-image" style={{ backgroundImage: `url("${choice.icon}")` }} /> : choice.key === "wallet-connect" ? "W" : "↗"}</span><span><strong>{choice.label}</strong><small>{choice.detail}</small></span><b aria-hidden="true">›</b></button>)}</div>
           {!walletChoices.length ? <p className="inline-error">No wallet connector is configured yet.</p> : null}
           {connectError ? <p className="inline-error" role="alert">{connectError}</p> : null}
           <p className="wallet-chooser-note">Yonder never connects a wallet before you choose one.</p>
