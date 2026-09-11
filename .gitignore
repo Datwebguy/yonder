@@ -1,0 +1,9 @@
+node_modules/
+.next/
+out/
+.env
+.env.local
+*.tsbuildinfo
+*.md
+!README.md
+refero-style-*.png
