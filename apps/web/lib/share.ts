@@ -315,8 +315,8 @@ export async function shareFill(input: ShareInput) {
   const intent = new URL("https://x.com/intent/post");
   intent.searchParams.set("text", text);
   intent.searchParams.set("url", url);
-  const shareWindow = window.open(intent.toString(), "_blank", "noopener,noreferrer");
-  if (!shareWindow) window.location.assign(intent.toString());
+  const shareWindow = window.open(intent.toString(), "_blank");
+  if (shareWindow) shareWindow.opener = null;
 }
 
 export function shareInputFromRow(market: YonderMarket, row: TapeRow): ShareInput {
