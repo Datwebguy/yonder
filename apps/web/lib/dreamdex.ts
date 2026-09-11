@@ -209,6 +209,15 @@ export async function fetchBook(market: YonderMarket, outcome: "YES" | "NO" = "Y
   return { bids, asks };
 }
 
+async function quoteStakeFromFreshBook(exchange: any, marketId: string, pool: string, side: "BUY_YES" | "BUY_NO", stake: bigint, decimals: number) {
+  const sdk = await import("@somnia-chain/markets-sdk");
+  const [book, params] = await Promise.all([
+    exchange.client.getBinaryOrderBook(pool, { depth: 10, decimals }),
+    exchange.client.getBinaryBookParams(pool),
+  ]);
+  return sdk.quoteBinaryStakeOverBook(book, side, stake, 10n ** BigInt(decimals), params);
+}
+
 export async function listPublicTape(market: YonderMarket): Promise<TapeRow[]> {
   if (typeof window !== "undefined") {
     const response = await fetch(`/api/markets/${encodeURIComponent(market.marketId)}/tape`, { cache: "no-store" });
@@ -259,11 +268,14 @@ export async function quoteTicket(market: YonderMarket, side: "Up" | "Down", max
     snapped = maxLoss;
   }
   if (!snapped) return { size: 0, price: 0, risk: maxLoss, disabledReason: "Below one lot" };
-  const book = await fetchBook(market, side === "Up" ? "YES" : "NO");
-  const ask = book.asks[0]?.price ?? 0;
-  if (!ask) return { size: 0, price: 0, risk: snapped, disabledReason: "No ask" };
-  const size = Number((snapped / ask).toFixed(6));
-  return { size, price: ask, risk: snapped };
+  const rawStake = fromHuman(snapped, market.decimals);
+  const quote = await quoteStakeFromFreshBook(exchange, market.marketId, market.poolAddress, side === "Up" ? "BUY_YES" : "BUY_NO", rawStake, market.decimals);
+  if (!quote) return { size: 0, price: 0, risk: snapped, disabledReason: "Not enough live ask liquidity" };
+  return {
+    size: Number(toHuman(quote.quantity, market.decimals)),
+    price: Number(toHuman(quote.limitPrice, market.decimals)),
+    risk: Number(toHuman(quote.escrow, market.decimals)),
+  };
 }
 
 export async function placeIocBuy(market: YonderMarket, side: "Up" | "Down", maxLoss: number, walletClient: WalletClient) {
@@ -278,13 +290,8 @@ export async function placeIocBuy(market: YonderMarket, side: "Up" | "Down", max
   const snappedStake = exchange.amountToPrecision(symbol, maxLoss);
   if (!snappedStake) throw new Error("Below one lot.");
   const rawStake = fromHuman(snappedStake, decimals);
-  const quote = await exchange.client.quoteBinaryStake({
-    marketId: market.marketId,
-    side: side === "Up" ? "BUY_YES" : "BUY_NO",
-    stake: rawStake,
-    depth: 5,
-  });
-  if (!quote) throw new Error("No ask or below one lot.");
+  const quote = await quoteStakeFromFreshBook(exchange, market.marketId, onchain.pool, side === "Up" ? "BUY_YES" : "BUY_NO", rawStake, decimals);
+  if (!quote) throw new Error("Not enough live ask liquidity for this stake. Try a smaller max loss or the other side.");
   const trader = exchange.client.createTrader({ walletClient });
   const result = await trader.placeOrder({
     pool: onchain.pool,
