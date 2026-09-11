@@ -5,6 +5,13 @@ import { Providers } from "@/components/providers";
 export const metadata: Metadata = {
   title: "Yonder. The next window.",
   description: "A public room for one DreamDEX Event Contract window.",
+  metadataBase: new URL("https://useyonder.vercel.app"),
+  openGraph: {
+    title: "Yonder. The next window.",
+    description: "A public room for one DreamDEX Event Contract window.",
+    type: "website",
+    images: ["/opengraph-image"],
+  },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

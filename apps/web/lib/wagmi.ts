@@ -15,8 +15,8 @@ if (typeof window !== "undefined" && walletConnectProjectId) {
     metadata: {
       name: "Yonder",
       description: "The next window. A public room for DreamDEX Event Contracts.",
-      url: "https://yonder.xyz",
-      icons: ["https://yonder.xyz/yonder-mark.svg"],
+      url: "https://useyonder.vercel.app",
+      icons: ["https://useyonder.vercel.app/yonder-mark.svg"],
     },
   }) as (typeof connectors)[number]);
 }

@@ -17,6 +17,7 @@ export function WalletButton({ required = false }: { required?: boolean }) {
   const { data: usdc } = useBalance({ address, chainId: SHANNON_CHAIN_ID, token: TEST_USDC, query: { enabled: Boolean(address) } });
   const [chooserOpen, setChooserOpen] = useState(false);
   const [connectError, setConnectError] = useState("");
+  const [switchError, setSwitchError] = useState("");
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
@@ -81,7 +82,15 @@ export function WalletButton({ required = false }: { required?: boolean }) {
   }
 
   if (chainId !== SHANNON_CHAIN_ID) {
-    return <button className="button button-blue" onClick={() => switchChain({ chainId: SHANNON_CHAIN_ID })} disabled={switching}>{switching ? "Switching" : "Switch to Shannon"}</button>;
+    const switchToShannon = async () => {
+      setSwitchError("");
+      try {
+        await switchChain({ chainId: SHANNON_CHAIN_ID });
+      } catch (reason) {
+        setSwitchError(reason instanceof Error ? reason.message : "Could not switch to Shannon.");
+      }
+    };
+    return <><button className="button button-blue" onClick={() => void switchToShannon()} disabled={switching}>{switching ? "Switching" : "Switch to Shannon"}</button>{switchError ? <p className="inline-error wallet-connect-error" role="alert">{switchError}</p> : null}</>;
   }
 
   return (

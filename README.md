@@ -11,7 +11,7 @@
 
 <p align="center">Yonder is a mobile first public room for one DreamDEX Event Contract window. Choose Up or Down, set the most you can lose, and take a seat only when an IOC order fills.</p>
 
-<p align="center"><a href="https://github.com/Datwebguy/yonder">Source</a> · <a href="https://docs.dreamdex.io/developers/event-contracts">DreamDEX Event Contracts</a> · <a href="https://shannon-explorer.somnia.network">Shannon Explorer</a></p>
+<p align="center"><a href="https://useyonder.vercel.app">Open Yonder</a> · <a href="https://github.com/Datwebguy/yonder">Source</a> · <a href="https://docs.dreamdex.io/developers/event-contracts">DreamDEX Event Contracts</a> · <a href="https://shannon-explorer.somnia.network">Shannon Explorer</a></p>
 
 ## The product
 
@@ -27,9 +27,9 @@ Yonder is deliberately focused. It is not an agent, a vault, a copy trading syst
 
 Open a live BTC or ETH window from the live board. Read the probability and the best available Up or Down prices. Enter a maximum loss in tUSDC. Yonder snaps the order to the venue lot rules, quotes the book, and sends an IOC buy through the connected wallet.
 
-The ticket accepts new entry only while the fresh on chain market status is Trading. The application reads the current market pool before every write, so recycled pool addresses are never used as market identity and no pool is hardcoded.
+The ticket accepts new entry only while the fresh on chain market status is explicitly Trading. Missing or invalid status is treated as unavailable. The application reads the current market pool before every write, so recycled pool addresses are never used as market identity and no pool is hardcoded.
 
-Filled orders are written to the local public tape under `yonder:tape:{marketId}`. Every row points to the Shannon explorer. Once the window is final, the locker handles redemption and the page can offer the next live window for the same asset.
+Filled orders appear on a shared public tape read from DreamDEX market activity. The browser keeps `yonder:tape:{marketId}` only as an optimistic cache while the indexer catches up, so local storage is not the source of truth. Every public row points to the Shannon explorer. Once the window is final, the locker handles redemption and the page can offer the next live window for the same asset.
 
 ## Live data and execution
 
@@ -69,7 +69,7 @@ Open `http://localhost:3000`.
 
 For mobile WalletConnect, set `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` in `apps/web/.env.local` to a project ID from WalletConnect Cloud. Fund a Shannon test wallet with STT for gas and tUSDC for trading.
 
-The Shannon configuration is kept in `apps/web/lib/chain.ts`. The Event Contract SDK setup and read/write paths are in `apps/web/lib/dreamdex.ts`.
+The Shannon configuration is kept in `apps/web/lib/chain.ts`. The Event Contract SDK setup, public tape reads, settlement checks, and write paths are in `apps/web/lib/dreamdex.ts`.
 
 ## Verification
 
@@ -78,6 +78,7 @@ The application can be checked with:
 ```bash
 cd apps/web
 npm run typecheck
+npm run lint
 npm run build
 ```
 
@@ -87,4 +88,4 @@ The intended demo path is simple: open a live window, choose a side, enter a max
 
 Yonder currently targets Somnia Shannon testnet. The chain ID is `50312`, the collateral is test tUSDC with six decimals, and the live RPC and explorer values are defined in the application chain configuration. Testnet funds have no production value.
 
-Built for a clearer way to enter the next DreamDEX Event Contract window.
+The deployed demo is [useyonder.vercel.app](https://useyonder.vercel.app). Built for a clearer way to enter the next DreamDEX Event Contract window.

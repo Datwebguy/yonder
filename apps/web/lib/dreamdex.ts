@@ -104,7 +104,9 @@ function normalizeMarket(exchange: any, row: AnyRecord, onchain: AnyRecord): Yon
     decimals: numberValue(onchain.decimals, 6),
     yesSymbol: symbols.yesSymbol,
     noSymbol: symbols.noSymbol,
-    status: numberValue(onchain.status, 1) as YonderMarket["status"],
+    // Never infer that a market is tradable when the chain read is incomplete.
+    // Status 0 is intentionally non-trading and keeps every write fail-closed.
+    status: numberValue(onchain.status, 0) as YonderMarket["status"],
     winningOutcome: onchain.isResolved ? numberValue(onchain.winningOutcome) : row.winningOutcome == null ? null : numberValue(row.winningOutcome),
     isVoided: Boolean(onchain.isVoided ?? row.isVoided),
   };
@@ -201,6 +203,45 @@ export async function fetchBook(market: YonderMarket, outcome: "YES" | "NO" = "Y
   return { bids, asks };
 }
 
+export async function listPublicTape(market: YonderMarket): Promise<TapeRow[]> {
+  if (typeof window !== "undefined") {
+    const response = await fetch(`/api/markets/${encodeURIComponent(market.marketId)}/tape`, { cache: "no-store" });
+    if (!response.ok) throw new Error((await response.text()) || "Public fill tape unavailable.");
+    return response.json() as Promise<TapeRow[]>;
+  }
+  const exchange = await getExchange();
+  const activity = await withTimeout(
+    exchange.client.getMarketActivity(market.marketId, {
+      limit: 50,
+      pool: market.poolAddress,
+      kinds: ["TRADE"],
+    }),
+    "Public fill tape",
+  ) as AnyRecord[];
+
+  return activity.flatMap((trade, index) => {
+    const rawSide = String(trade.takerSide ?? trade.makerSide ?? "");
+    const side = rawSide.includes("NO") ? "Down" : rawSide.includes("YES") ? "Up" : null;
+    const wallet = String(trade.taker ?? trade.maker ?? "");
+    if (!side || !wallet) return [];
+
+    const price = Number(toHuman(BigInt(String(trade.fillPrice ?? 0)), market.decimals));
+    const size = Number(toHuman(BigInt(String(trade.quantity ?? 0)), market.decimals));
+    if (!Number.isFinite(price) || !Number.isFinite(size) || price <= 0 || size <= 0) return [];
+
+    return [{
+      id: String(trade.id ?? `${trade.txHash}-${index}`),
+      marketId: market.marketId,
+      wallet,
+      side,
+      size,
+      price: side === "Up" ? price : Math.max(0, Math.min(1, 1 - price)),
+      timestamp: Number(trade.timestamp) * 1000 || Date.now(),
+      txHash: String(trade.txHash ?? ""),
+    } satisfies TapeRow];
+  });
+}
+
 export async function quoteTicket(market: YonderMarket, side: "Up" | "Down", maxLoss: number): Promise<TicketQuote> {
   const exchange = await getExchange();
   if (!Number.isFinite(maxLoss) || maxLoss <= 0) return { size: 0, price: 0, risk: maxLoss, disabledReason: "Enter a max loss" };
@@ -257,6 +298,8 @@ export async function placeIocBuy(market: YonderMarket, side: "Up" | "Down", max
 }
 
 export async function redeemPosition(input: { marketId: string; amount: bigint; outcomeIdx: 0 | 1; walletClient: WalletClient }) {
+  const market = await getMarket(input.marketId);
+  if (market.status < 4) throw new Error("This window is not finalized yet.");
   const exchange = await setExchangeSigner(input.walletClient);
   const trader = exchange.client.createTrader({ walletClient: input.walletClient });
   return trader.redeem({ marketId: input.marketId, amount: input.amount, outcomeIdx: input.outcomeIdx });
@@ -285,6 +328,8 @@ export async function listOpenPositions(account: string) {
 }
 
 export async function redeemAll(claims: AnyRecord[], walletClient: WalletClient) {
+  const markets = await Promise.all(claims.map((claim) => getMarket(String(claim.marketId))));
+  if (markets.some((market) => market.status < 4)) throw new Error("Every claim must be finalized before redeeming.");
   const exchange = await setExchangeSigner(walletClient);
   const trader = exchange.client.createTrader({ walletClient });
   return trader.redeemMany({ entries: claims.map((claim) => ({ marketId: String(claim.marketId), amount: BigInt(String(claim.amount)), outcomeIdx: Number(claim.outcomeIdx) as 0 | 1 })) });

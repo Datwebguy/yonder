@@ -5,8 +5,9 @@
   "scripts": {
     "dev": "node node_modules/next/dist/bin/next dev --turbo",
     "build": "node node_modules/next/dist/bin/next build --turbopack",
-    "lint": "next lint",
-    "typecheck": "node node_modules/typescript/bin/tsc --noEmit"
+    "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
+    "typecheck": "node node_modules/typescript/bin/tsc --noEmit",
+    "verify": "npm run typecheck && npm run lint && npm run build"
   },
   "dependencies": {
     "@somnia-chain/markets-sdk": "^0.29.0",
@@ -22,8 +23,15 @@
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "autoprefixer": "^10.4.20",
-    "postcss": "^8.4.49",
+    "eslint": "^8.57.0",
+    "eslint-config-next": "^15.5.25",
+    "postcss": "^8.5.28",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.7.2"
+  },
+  "overrides": {
+    "axios": "^1.17.1",
+    "postcss": "^8.5.28",
+    "ws": "^8.21.0"
   }
 }
