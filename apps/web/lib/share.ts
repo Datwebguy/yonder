@@ -292,7 +292,9 @@ export async function shareFill(input: ShareInput) {
       ? `${priceLine} It did not land this time, but the public record is on Yonder.\n\nTry the next window on @Somnia_Network with @dreamDEXSomnia.\n\nYou can go check it out.`
       : `${priceLine} Trying the next window on Yonder.\n\nPublic Event Contracts on @Somnia_Network with @dreamDEXSomnia.\n\nYou can go check it out.`;
   const file = new File([blob], "yonder-card.png", { type: "image/png" });
-  if (navigator.share && navigator.canShare?.({ files: [file] })) {
+  const userAgent = navigator.userAgent;
+  const isMobile = /Android|iPhone|iPad|iPod/i.test(userAgent) || (navigator.maxTouchPoints > 1 && /Macintosh/i.test(userAgent));
+  if (isMobile && navigator.share && navigator.canShare?.({ files: [file] })) {
     try {
       await navigator.share({ title: "Yonder", text, url, files: [file] });
       return;
