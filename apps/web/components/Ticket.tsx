@@ -8,6 +8,8 @@ import { countdown, formatPrice } from "@/lib/sizing";
 import type { TicketQuote, YonderMarket } from "@/lib/types";
 import { WalletButton } from "./WalletButton";
 
+const ENTRY_CUTOFF_SECONDS = 20;
+
 export function Ticket({ market, onSuccess }: { market: YonderMarket; onSuccess: (result: { side: "Up" | "Down"; size: number; price: number; txHash: string; fills: unknown[] }) => void }) {
   const { address, chainId, isConnected } = useAccount();
   const { data: walletClient } = useWalletClient();
@@ -25,7 +27,7 @@ export function Ticket({ market, onSuccess }: { market: YonderMarket; onSuccess:
     return () => { active = false; };
   }, [market, side, maxLoss]);
 
-  const reason = market.status !== 1 ? market.status === 2 || market.status === 3 ? "Locked" : "Final" : secondsLeft < 60 ? "T-60s" : chainId !== undefined && chainId !== SHANNON_CHAIN_ID ? "Wrong network" : quote.disabledReason;
+  const reason = market.status !== 1 ? market.status === 2 || market.status === 3 ? "Locked" : "Final" : secondsLeft < ENTRY_CUTOFF_SECONDS ? `T-${ENTRY_CUTOFF_SECONDS}s` : chainId !== undefined && chainId !== SHANNON_CHAIN_ID ? "Wrong network" : quote.disabledReason;
   const disabled = Boolean(reason) || !isConnected || !walletClient || pending;
   const buy = async () => {
     if (!walletClient) return;
