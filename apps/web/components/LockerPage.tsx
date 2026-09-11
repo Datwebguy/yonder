@@ -51,6 +51,12 @@ export function LockerPage() {
   const claimable = claims.filter(({ claim }) => BigInt(String(claim.amount)) > 0n);
   const zeroClaims = claims.filter(({ claim }) => BigInt(String(claim.amount)) === 0n);
   const openPositions = positions.filter(({ market, position }) => market.status < 4 && BigInt(String(position.balance ?? 0)) > 0n);
+  const claimableKeys = new Set(claimable.map(({ claim }) => `${claim.marketId}-${claim.outcomeIdx}`));
+  const settledLosses = positions.filter(({ market, position }) => {
+    const amount = BigInt(String(position.balance ?? 0));
+    const key = `${market.marketId}-${position.outcomeIndex}`;
+    return market.status >= 4 && amount > 0n && !claimableKeys.has(key) && !market.isVoided && market.winningOutcome !== Number(position.outcomeIndex);
+  });
 
   const redeemAllNow = async () => {
     if (!walletClient || !claimable.length) return;
@@ -83,14 +89,16 @@ export function LockerPage() {
               const claimKey = `${claim.marketId}-${claim.outcomeIdx}`;
               const row: TapeRow = { id: `claim-${claimKey}`, marketId: market.marketId, wallet: address ?? "", side: Number(claim.outcomeIdx) === 0 ? "Up" : "Down", size: Number(formatUnits(amount, market.decimals)), price: 1, timestamp: Date.now(), txHash: claimedHashes[claimKey] ?? "", outcome: "won" };
               const claimedHash = claimedHashes[claimKey];
-              return <article className="locker-row" key={claimKey}><div className="locker-row-top"><div><strong>{market.asset} · {market.intervalLabel}</strong><div className="fine-print">{row.side} · {row.size.toFixed(3)} shares{market.isVoided ? " · void" : " · winner"}</div></div><span className="status-chip status-4">{market.isVoided ? "Void" : "Claimable"}</span></div><div className="locker-row-bottom"><RedeemButton market={market} amount={amount} outcomeIdx={Number(claim.outcomeIdx) as 0 | 1} onRedeemed={(hash) => setClaimedHashes((current) => ({ ...current, [claimKey]: hash }))} />{claimedHash ? <span className="locker-share"><ShareButton market={market} row={row} label="Share" /></span> : null}</div></article>;
+              return <article className="locker-row" key={claimKey}><div className="locker-row-top"><div><strong>{market.asset} · {market.intervalLabel}</strong><div className="fine-print">{row.side} · {row.size.toFixed(3)} shares{market.isVoided ? " · void" : " · winner"}</div></div><span className="status-chip status-4">{market.isVoided ? "Void" : "Claimable"}</span></div><div className="locker-row-bottom"><RedeemButton market={market} amount={amount} outcomeIdx={Number(claim.outcomeIdx) as 0 | 1} onRedeemed={(hash) => setClaimedHashes((current) => ({ ...current, [claimKey]: hash }))} />{claimedHash ? <span className="locker-share"><ShareButton market={market} row={row} label="Share on X" /></span> : null}</div></article>;
             })}</div></section> : null}
 
             {zeroClaims.length ? <section className="locker-section"><div className="section-heading"><h2>Zero</h2><span className="tape-note">settled at 0</span></div><div className="locker-list">{zeroClaims.map(({ claim, market }) => <article className="locker-row" key={`${claim.marketId}-${claim.outcomeIdx}`}><div className="locker-row-top"><div><strong>{market.asset} · {market.intervalLabel}</strong><div className="fine-print">{Number(claim.outcomeIdx) === 0 ? "Up" : "Down"} · 0.000 shares redeemable</div></div><span className="status-chip status-5">{market.isVoided ? "Void" : "Zero"}</span></div><p className="fine-print">This is a valid settlement result. There is nothing to redeem.</p></article>)}</div></section> : null}
 
+            {settledLosses.length ? <section className="locker-section"><div className="section-heading"><h2>Settled</h2><span className="tape-note">not a winning share</span></div><div className="locker-list">{settledLosses.map(({ market, position }) => <article className="locker-row" key={`${market.marketId}-${position.outcomeIndex}`}><div className="locker-row-top"><div><strong>{market.asset} · {market.intervalLabel}</strong><div className="fine-print">{Number(position.outcomeIndex) === 0 ? "Up" : "Down"} · {Number(formatUnits(BigInt(String(position.balance)), market.decimals)).toFixed(3)} shares</div></div><span className="status-chip status-5">Lost</span></div><p className="fine-print">This window settled on the other side. There is nothing to redeem.</p></article>)}</div></section> : null}
+
             {openPositions.length ? <section className="locker-section"><div className="section-heading"><h2>Held</h2><span className="tape-note">live + locked</span></div><div className="locker-list">{openPositions.map(({ position, market }) => <article className="locker-row" key={`${market.marketId}-${position.outcomeIndex}`}><div className="locker-row-top"><div><strong>{market.asset} · {market.intervalLabel}</strong><div className="fine-print">{Number(position.outcomeIndex) === 0 ? "Up" : "Down"} · {Number(formatUnits(BigInt(String(position.balance)), market.decimals)).toFixed(3)} shares</div></div><span className={`status-chip status-${market.status}`}>{positionStatus(market)}</span></div></article>)}</div></section> : null}
 
-            {!claimable.length && !zeroClaims.length && !openPositions.length ? <div className="empty-state">Nothing to claim. <Link className="tx-link" href="/app">Open a window</Link></div> : null}
+            {!claimable.length && !zeroClaims.length && !settledLosses.length && !openPositions.length ? <div className="empty-state">Nothing to claim. <Link className="tx-link" href="/app">Open a window</Link></div> : null}
           </>
         )}
         {allHash ? <a className="tx-link" href={explorerTxUrl(allHash)} target="_blank" rel="noreferrer">View redeem-all receipt ↗</a> : null}

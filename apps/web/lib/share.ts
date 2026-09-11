@@ -29,22 +29,20 @@ export async function shareFill(input: ShareInput) {
   const blob = await makeShareCard(input);
   const url = `${window.location.origin}/m/${input.market.marketId}`;
   const text = input.outcome === "won" ? `Won the ${input.market.asset} ${input.market.intervalLabel} on Yonder.` : `${input.side} on ${input.market.asset} ${input.market.intervalLabel} @ ${Math.round(input.price * 100)}¢. The next window.`;
-  const file = new File([blob], "yonder-card.png", { type: "image/png" });
-  if (navigator.share) {
-    try {
-      await navigator.share({ title: "Yonder", text, url, files: [file] });
-      return;
-    } catch (reason) {
-      // A cancelled mobile share should leave the page intact. Unsupported file sharing falls through to download.
-      if (reason instanceof DOMException && reason.name === "AbortError") return;
-    }
-  }
+  const downloadUrl = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
-  anchor.href = URL.createObjectURL(blob);
+  anchor.href = downloadUrl;
   anchor.download = "yonder-card.png";
+  document.body.appendChild(anchor);
   anchor.click();
-  URL.revokeObjectURL(anchor.href);
-  window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(`${text} ${url}`)}`, "_blank", "noopener,noreferrer");
+  anchor.remove();
+  URL.revokeObjectURL(downloadUrl);
+
+  const intent = new URL("https://x.com/intent/post");
+  intent.searchParams.set("text", text);
+  intent.searchParams.set("url", url);
+  const shareWindow = window.open(intent.toString(), "_blank", "noopener,noreferrer");
+  if (!shareWindow) window.location.assign(intent.toString());
 }
 
 export function shareInputFromRow(market: YonderMarket, row: TapeRow): ShareInput {
